@@ -422,28 +422,26 @@
           <code>Q_usable = min(Q_scaled, feed2 * BTU_per_lb * eff)</code>.
           Source:
           <a href="https://greenhillforge.com/blogs/resources/wood-stove-water-heater-new-test-new-winner" target="_blank" rel="noopener noreferrer">new test page</a>.
+          Baseline reference used here: in-flue coil test about 4.1 kW at 33% efficiency with 50 ft x 1/2 in coil; implied baseline feed is about 6.5 lb/hr (at 6500 BTU/lb).
         </p>
         <h3 style="margin:0 0 8px 0;font-size:14px;color:#cbd5e1;">Dataset Baseline (Reference)</h3>
-        <p class="note">These fields represent the source test baseline used for scaling.</p>
+        <p class="note">Enter baseline raw numbers; efficiency is derived automatically.</p>
         <div class="row">
           <div>
-            <label>Baseline wood used (lb)</label>
-            <input id="scaleBaseWoodLb" type="number" step="any" value="19">
+            <label>Baseline measured power (kW)</label>
+            <input id="scaleBaseKw" type="number" step="any" value="4.1">
           </div>
           <div>
-            <label>Baseline test duration (min)</label>
-            <input id="scaleBaseMinutes" type="number" step="any" value="32">
+            <label>Baseline feed rate (lb/hr)</label>
+            <input id="scaleBaseFeedLbHr" type="number" step="any" value="6.5">
           </div>
         </div>
         <div class="row">
           <div>
-            <label>Baseline efficiency (%)</label>
-            <input id="scaleEffPct" type="number" step="any" value="33">
-          </div>
-          <div>
             <label>Wood energy content (BTU/lb)</label>
             <input id="scaleBtuPerLb" type="number" step="any" value="6500">
           </div>
+          <div></div>
         </div>
         <div class="row">
           <div>
@@ -455,13 +453,17 @@
             <input id="scaleBaseLft" type="number" step="any" value="50">
           </div>
         </div>
+        <div class="card" style="background:rgba(15,23,42,.55);border-color:#475569;margin-bottom:12px;">
+          <div class="t" style="margin-bottom:6px;">Calculated Baseline Values</div>
+          <div class="note" id="scaleBaseCalcNote">-</div>
+        </div>
         <hr style="border:0;border-top:1px solid var(--line);margin:12px 0;">
         <h3 style="margin:0 0 8px 0;font-size:14px;color:#cbd5e1;">Your Target Setup (Inputs)</h3>
         <p class="note">Enter your target feed rate and coil dimensions to extrapolate from the baseline.</p>
         <div class="row">
           <div>
             <label>Target wood feed rate (lb/hr)</label>
-            <input id="scaleTargetFeedLbHr" type="number" step="any" value="35.6">
+            <input id="scaleTargetFeedLbHr" type="number" step="any" value="6.5">
           </div>
           <div>
             <label>Target coil diameter (in)</label>
@@ -471,15 +473,11 @@
         <div class="row">
           <div>
             <label>Target coil length (ft)</label>
-            <input id="scaleTargetLft" type="number" step="any" value="100">
+            <input id="scaleTargetLft" type="number" step="any" value="50">
           </div>
           <div></div>
         </div>
         <div class="kpis">
-          <div class="kpi">
-            <div class="t">Baseline implied feed rate</div>
-            <div class="v" id="scaleBaseFeedOut">-</div>
-          </div>
           <div class="kpi">
             <div class="t">Area ratio (A2/A1)</div>
             <div class="v" id="scaleRatioOut">-</div>
@@ -502,6 +500,16 @@
           <div class="kpi">
             <div class="t">Estimated delivered energy in 24h</div>
             <div class="v" id="scaleE24Out">-</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Gross fuel power at target feed (100%)</div>
+            <div class="v" id="scaleGrossFuelKwOut">-</div>
+            <div class="note" id="scaleGrossFuelBtuOut">-</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Implied usable efficiency</div>
+            <div class="v" id="scaleImpliedEffOut">-</div>
+            <div class="note" id="scaleImpliedEffNote">-</div>
           </div>
         </div>
       </section>
@@ -980,9 +988,8 @@
     }
 
     function computeCoilScaleTool() {
-      const baseWoodLb = Math.max(0, Number($("scaleBaseWoodLb").value));
-      const baseMinutes = Math.max(0.1, Number($("scaleBaseMinutes").value));
-      const eff = Math.max(0, Number($("scaleEffPct").value)) / 100;
+      const q1Kw = Math.max(0, Number($("scaleBaseKw").value));
+      const baseFeedLbHr = Math.max(0.0001, Number($("scaleBaseFeedLbHr").value));
       const btuPerLb = Math.max(0, Number($("scaleBtuPerLb").value));
       const d1 = Math.max(0, Number($("scaleBaseDin").value));
       const l1 = Math.max(0, Number($("scaleBaseLft").value));
@@ -990,19 +997,24 @@
       const d2 = Math.max(0, Number($("scaleTargetDin").value));
       const l2 = Math.max(0, Number($("scaleTargetLft").value));
 
-      const baseFeedLbHr = baseWoodLb * 60 / baseMinutes;
-      const q1BtuHr = baseFeedLbHr * btuPerLb * eff;
-      const q1Kw = q1BtuHr / BTU_PER_HR_PER_KW;
+      const q1BtuHr = q1Kw * BTU_PER_HR_PER_KW;
+      const eff = (baseFeedLbHr * btuPerLb > 0) ? (q1BtuHr / (baseFeedLbHr * btuPerLb)) : 0;
       const a1 = Math.PI * d1 * l1;
       const a2 = Math.PI * d2 * l2;
       const ratio = a1 > 0 ? (a2 / a1) : 0;
       const feedRatio = baseFeedLbHr > 0 ? (targetFeedLbHr / baseFeedLbHr) : 0;
       const qScaledKw = q1Kw * feedRatio * ratio;
+      const qGrossFuelKw = (targetFeedLbHr * btuPerLb) / BTU_PER_HR_PER_KW;
       const qFuelCapKw = (targetFeedLbHr * btuPerLb * eff) / BTU_PER_HR_PER_KW;
       const qUsableKw = Math.min(qScaledKw, qFuelCapKw);
       const e24 = qUsableKw * 24;
+      const impliedEffPct = qGrossFuelKw > 0 ? (qUsableKw / qGrossFuelKw) * 100 : 0;
 
-      $("scaleBaseFeedOut").textContent = baseFeedLbHr.toFixed(2) + " lb/hr";
+      const baseGrossFuelKw = (baseFeedLbHr * btuPerLb) / BTU_PER_HR_PER_KW;
+      $("scaleBaseCalcNote").innerHTML =
+        "Derived efficiency: <strong>" + (eff * 100).toFixed(1) + " %</strong><br>" +
+        "Baseline useful power: <strong>" + q1Kw.toFixed(2) + " kW</strong> (" + q1BtuHr.toFixed(0) + " BTU/hr)<br>" +
+        "Baseline gross fuel power: <strong>" + baseGrossFuelKw.toFixed(2) + " kW</strong>";
       $("scaleRatioOut").textContent = ratio.toFixed(3) + "x";
       $("scalePowerKwOut").textContent = qScaledKw.toFixed(2) + " kW";
       $("scalePowerBtuOut").textContent = (qScaledKw * BTU_PER_HR_PER_KW).toFixed(0) + " BTU/hr";
@@ -1011,6 +1023,10 @@
       $("scalePowerCapKwOut").textContent = qUsableKw.toFixed(2) + " kW";
       $("scalePowerCapBtuOut").textContent = (qUsableKw * BTU_PER_HR_PER_KW).toFixed(0) + " BTU/hr";
       $("scaleE24Out").textContent = e24.toFixed(1) + " kWh/day";
+      $("scaleGrossFuelKwOut").textContent = qGrossFuelKw.toFixed(2) + " kW";
+      $("scaleGrossFuelBtuOut").textContent = (qGrossFuelKw * BTU_PER_HR_PER_KW).toFixed(0) + " BTU/hr";
+      $("scaleImpliedEffOut").textContent = impliedEffPct.toFixed(1) + " %";
+      $("scaleImpliedEffNote").textContent = "Derived from baseline raw inputs.";
     }
 
 
@@ -1030,7 +1046,7 @@
     $("fdtDeltaF").addEventListener("input", () => computeFlowDeltaPower("dt"));
     $("fdtPowerKw").addEventListener("input", () => computeFlowDeltaPower("kw"));
     $("fdtPowerBtuHr").addEventListener("input", () => computeFlowDeltaPower("btu"));
-    ["scaleBaseWoodLb","scaleBaseMinutes","scaleEffPct","scaleBtuPerLb","scaleBaseDin","scaleBaseLft","scaleTargetFeedLbHr","scaleTargetDin","scaleTargetLft"]
+    ["scaleBaseKw","scaleBaseFeedLbHr","scaleBtuPerLb","scaleBaseDin","scaleBaseLft","scaleTargetFeedLbHr","scaleTargetDin","scaleTargetLft"]
       .forEach((id) => $(id).addEventListener("input", computeCoilScaleTool));
 
     toggleSolveInputs();
