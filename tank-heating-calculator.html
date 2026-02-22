@@ -124,6 +124,12 @@
       border-color: #ef4444 !important;
       box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25);
     }
+    .calc-out {
+      background: #1f2937 !important;
+      color: #94a3b8 !important;
+      border-color: #475569 !important;
+      cursor: not-allowed;
+    }
     canvas {
       width: 100%;
       height: 310px;
@@ -307,12 +313,51 @@
       </section>
 
       <section class="card" style="max-width: 760px; margin-top: 12px;">
+        <h2 style="margin:0 0 10px 0;font-size:16px;">Flow / Delta-T / Power</h2>
+        <div class="row">
+          <div>
+            <label>Solve for</label>
+            <select id="fdtSolve">
+              <option value="power">Power (kW, BTU/hr)</option>
+              <option value="flow">Flow (GPM)</option>
+              <option value="dt">Delta-T (F)</option>
+            </select>
+          </div>
+          <div></div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Flow (GPM)</label>
+            <input id="fdtFlowGpm" type="number" step="any" value="2.5">
+          </div>
+          <div>
+            <label>Delta-T (F)</label>
+            <input id="fdtDeltaF" type="number" step="any" value="8">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Power (kW)</label>
+            <input id="fdtPowerKw" type="number" step="any" value="2.9">
+          </div>
+          <div>
+            <label>Power (BTU/hr)</label>
+            <input id="fdtPowerBtuHr" type="number" step="any" value="10000">
+          </div>
+        </div>
+        <p class="note" id="fdtNote">Uses Q(BTU/hr) = 500 * GPM * Delta-T(F) for water.</p>
+      </section>
+
+      <section class="card" style="max-width: 760px; margin-top: 12px;">
         <h2 style="margin:0 0 10px 0;font-size:16px;">Chimney External Copper Coil</h2>
         <p class="note">
           Assumed setup: conventional enclosed wood stove/firebox with natural-draft chimney, using an external copper coil heat exchanger.
           This models a standard stove-style configuration (not a rocket stove/down-draft gasifier) and uses observed water-side efficiency from Part 3 style tests.
           Source:
           <a href="https://greenhillforge.com/blogs/resources/new-water-heater-test-results-best-wood-stove-water-heater-yet-off-grid-water-heater-part-3" target="_blank" rel="noopener noreferrer">Part 3 test page</a>.
+          Pump used in video notes:
+          <a href="https://amzn.to/3G8A82V" target="_blank" rel="noopener noreferrer">linked pump</a>.
+          Likely loop flow is roughly 2 to 3 GPM (estimated from reported ~2.7 kW water heating and about 7 to 10 F loop delta-T; actual depends on coil/fittings head loss).
         </p>
         <div class="row">
           <div>
@@ -333,6 +378,7 @@
 
         <hr style="border:0;border-top:1px solid var(--line);margin:12px 0;">
         <h3 style="margin:0 0 8px 0;font-size:14px;color:#cbd5e1;">Extrapolation (Larger System)</h3>
+        <p class="note">Set <strong>Wood feed rate (lb/hr)</strong> to match your actual stove burn rate; this is the main driver for scaling results to your setup.</p>
         <div class="row">
           <div>
             <label>Wood feed rate (lb/hr)</label>
@@ -360,6 +406,102 @@
             <div class="t">Delivered energy in 24h</div>
             <div class="v" id="part3ExEnergyKwhOut">-</div>
             <div class="note" id="part3ExEnergyBtuOut">-</div>
+          </div>
+        </div>
+
+      </section>
+
+      <section class="card" style="max-width: 760px; margin-top: 12px;">
+        <h2 style="margin:0 0 10px 0;font-size:16px;">Calibrated Coil Area Scaling</h2>
+        <p class="note">
+          Reasoning: anchor to the flue-coil dataset (about 19 lb wood, 33% efficiency, 50 ft x 1/2 in copper),
+          then scale by both wood feed rate and coil area ratio.
+          First-pass model:
+          <code>Q_scaled ~= Q_base * (feed2/feed1) * (A2/A1)</code>, with <code>A = pi * D * L</code>.
+          Final usable power is capped by fuel power at target feed:
+          <code>Q_usable = min(Q_scaled, feed2 * BTU_per_lb * eff)</code>.
+          Source:
+          <a href="https://greenhillforge.com/blogs/resources/wood-stove-water-heater-new-test-new-winner" target="_blank" rel="noopener noreferrer">new test page</a>.
+        </p>
+        <h3 style="margin:0 0 8px 0;font-size:14px;color:#cbd5e1;">Dataset Baseline (Reference)</h3>
+        <p class="note">These fields represent the source test baseline used for scaling.</p>
+        <div class="row">
+          <div>
+            <label>Baseline wood used (lb)</label>
+            <input id="scaleBaseWoodLb" type="number" step="any" value="19">
+          </div>
+          <div>
+            <label>Baseline test duration (min)</label>
+            <input id="scaleBaseMinutes" type="number" step="any" value="32">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Baseline efficiency (%)</label>
+            <input id="scaleEffPct" type="number" step="any" value="33">
+          </div>
+          <div>
+            <label>Wood energy content (BTU/lb)</label>
+            <input id="scaleBtuPerLb" type="number" step="any" value="6500">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Baseline coil diameter (in)</label>
+            <input id="scaleBaseDin" type="number" step="any" value="0.5">
+          </div>
+          <div>
+            <label>Baseline coil length (ft)</label>
+            <input id="scaleBaseLft" type="number" step="any" value="50">
+          </div>
+        </div>
+        <hr style="border:0;border-top:1px solid var(--line);margin:12px 0;">
+        <h3 style="margin:0 0 8px 0;font-size:14px;color:#cbd5e1;">Your Target Setup (Inputs)</h3>
+        <p class="note">Enter your target feed rate and coil dimensions to extrapolate from the baseline.</p>
+        <div class="row">
+          <div>
+            <label>Target wood feed rate (lb/hr)</label>
+            <input id="scaleTargetFeedLbHr" type="number" step="any" value="35.6">
+          </div>
+          <div>
+            <label>Target coil diameter (in)</label>
+            <input id="scaleTargetDin" type="number" step="any" value="0.5">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Target coil length (ft)</label>
+            <input id="scaleTargetLft" type="number" step="any" value="100">
+          </div>
+          <div></div>
+        </div>
+        <div class="kpis">
+          <div class="kpi">
+            <div class="t">Baseline implied feed rate</div>
+            <div class="v" id="scaleBaseFeedOut">-</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Area ratio (A2/A1)</div>
+            <div class="v" id="scaleRatioOut">-</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Scaled power (before fuel cap)</div>
+            <div class="v" id="scalePowerKwOut">-</div>
+            <div class="note" id="scalePowerBtuOut">-</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Fuel-limited power at target feed</div>
+            <div class="v" id="scaleFuelCapKwOut">-</div>
+            <div class="note" id="scaleFuelCapBtuOut">-</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Usable estimated power</div>
+            <div class="v" id="scalePowerCapKwOut">-</div>
+            <div class="note" id="scalePowerCapBtuOut">-</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Estimated delivered energy in 24h</div>
+            <div class="v" id="scaleE24Out">-</div>
           </div>
         </div>
       </section>
@@ -787,6 +929,91 @@
       $("part3ExEnergyBtuOut").textContent = e24Btu.toFixed(0) + " BTU/day";
     }
 
+    function computeFlowDeltaPower(changed = "") {
+      const solve = $("fdtSolve").value;
+      let gpm = Math.max(0, Number($("fdtFlowGpm").value));
+      let dtF = Math.max(0, Number($("fdtDeltaF").value));
+      let kw = Math.max(0, Number($("fdtPowerKw").value));
+      let btuHr = Math.max(0, Number($("fdtPowerBtuHr").value));
+
+      if (changed === "kw") btuHr = kw * BTU_PER_HR_PER_KW;
+      if (changed === "btu") kw = btuHr / BTU_PER_HR_PER_KW;
+
+      if (solve === "power") {
+        btuHr = 500 * gpm * dtF;
+        kw = btuHr / BTU_PER_HR_PER_KW;
+        $("fdtNote").textContent = "Computed power from flow and delta-T.";
+      } else if (solve === "flow") {
+        gpm = (500 * dtF > 0) ? (btuHr / (500 * dtF)) : 0;
+        $("fdtNote").textContent = "Computed flow from power and delta-T.";
+      } else {
+        dtF = (500 * gpm > 0) ? (btuHr / (500 * gpm)) : 0;
+        $("fdtNote").textContent = "Computed delta-T from power and flow.";
+      }
+
+      $("fdtFlowGpm").value = gpm.toFixed(3);
+      $("fdtDeltaF").value = dtF.toFixed(3);
+      $("fdtPowerKw").value = kw.toFixed(3);
+      $("fdtPowerBtuHr").value = btuHr.toFixed(0);
+    }
+
+    function updateFlowSolveUI() {
+      const solve = $("fdtSolve").value;
+      const all = ["fdtFlowGpm", "fdtDeltaF", "fdtPowerKw", "fdtPowerBtuHr"];
+      all.forEach((id) => {
+        $(id).readOnly = false;
+        $(id).classList.remove("calc-out");
+      });
+
+      if (solve === "power") {
+        $("fdtPowerKw").readOnly = true;
+        $("fdtPowerBtuHr").readOnly = true;
+        $("fdtPowerKw").classList.add("calc-out");
+        $("fdtPowerBtuHr").classList.add("calc-out");
+      } else if (solve === "flow") {
+        $("fdtFlowGpm").readOnly = true;
+        $("fdtFlowGpm").classList.add("calc-out");
+      } else {
+        $("fdtDeltaF").readOnly = true;
+        $("fdtDeltaF").classList.add("calc-out");
+      }
+    }
+
+    function computeCoilScaleTool() {
+      const baseWoodLb = Math.max(0, Number($("scaleBaseWoodLb").value));
+      const baseMinutes = Math.max(0.1, Number($("scaleBaseMinutes").value));
+      const eff = Math.max(0, Number($("scaleEffPct").value)) / 100;
+      const btuPerLb = Math.max(0, Number($("scaleBtuPerLb").value));
+      const d1 = Math.max(0, Number($("scaleBaseDin").value));
+      const l1 = Math.max(0, Number($("scaleBaseLft").value));
+      const targetFeedLbHr = Math.max(0, Number($("scaleTargetFeedLbHr").value));
+      const d2 = Math.max(0, Number($("scaleTargetDin").value));
+      const l2 = Math.max(0, Number($("scaleTargetLft").value));
+
+      const baseFeedLbHr = baseWoodLb * 60 / baseMinutes;
+      const q1BtuHr = baseFeedLbHr * btuPerLb * eff;
+      const q1Kw = q1BtuHr / BTU_PER_HR_PER_KW;
+      const a1 = Math.PI * d1 * l1;
+      const a2 = Math.PI * d2 * l2;
+      const ratio = a1 > 0 ? (a2 / a1) : 0;
+      const feedRatio = baseFeedLbHr > 0 ? (targetFeedLbHr / baseFeedLbHr) : 0;
+      const qScaledKw = q1Kw * feedRatio * ratio;
+      const qFuelCapKw = (targetFeedLbHr * btuPerLb * eff) / BTU_PER_HR_PER_KW;
+      const qUsableKw = Math.min(qScaledKw, qFuelCapKw);
+      const e24 = qUsableKw * 24;
+
+      $("scaleBaseFeedOut").textContent = baseFeedLbHr.toFixed(2) + " lb/hr";
+      $("scaleRatioOut").textContent = ratio.toFixed(3) + "x";
+      $("scalePowerKwOut").textContent = qScaledKw.toFixed(2) + " kW";
+      $("scalePowerBtuOut").textContent = (qScaledKw * BTU_PER_HR_PER_KW).toFixed(0) + " BTU/hr";
+      $("scaleFuelCapKwOut").textContent = qFuelCapKw.toFixed(2) + " kW";
+      $("scaleFuelCapBtuOut").textContent = (qFuelCapKw * BTU_PER_HR_PER_KW).toFixed(0) + " BTU/hr";
+      $("scalePowerCapKwOut").textContent = qUsableKw.toFixed(2) + " kW";
+      $("scalePowerCapBtuOut").textContent = (qUsableKw * BTU_PER_HR_PER_KW).toFixed(0) + " BTU/hr";
+      $("scaleE24Out").textContent = e24.toFixed(1) + " kWh/day";
+    }
+
+
     $("loadExample").addEventListener("click", loadExample);
     $("tabCalcBtn").addEventListener("click", () => setActiveTab("calc"));
     $("tabToolsBtn").addEventListener("click", () => setActiveTab("tools"));
@@ -798,12 +1025,22 @@
     ["part3FeedLbHr", "part3ExBtuPerLb", "part3Eff"]
       .forEach((id) => $(id).addEventListener("input", computePart3Extrapolation));
     $("part3Preset").addEventListener("change", applyPart3PresetToExtrapolation);
+    $("fdtSolve").addEventListener("change", () => { updateFlowSolveUI(); computeFlowDeltaPower(""); });
+    $("fdtFlowGpm").addEventListener("input", () => computeFlowDeltaPower("flow"));
+    $("fdtDeltaF").addEventListener("input", () => computeFlowDeltaPower("dt"));
+    $("fdtPowerKw").addEventListener("input", () => computeFlowDeltaPower("kw"));
+    $("fdtPowerBtuHr").addEventListener("input", () => computeFlowDeltaPower("btu"));
+    ["scaleBaseWoodLb","scaleBaseMinutes","scaleEffPct","scaleBtuPerLb","scaleBaseDin","scaleBaseLft","scaleTargetFeedLbHr","scaleTargetDin","scaleTargetLft"]
+      .forEach((id) => $(id).addEventListener("input", computeCoilScaleTool));
 
     toggleSolveInputs();
     setActiveTab("calc");
     loadExample();
     computeWoodTool();
     applyPart3PresetToExtrapolation();
+    updateFlowSolveUI();
+    computeFlowDeltaPower("");
+    computeCoilScaleTool();
   </script>
 </body>
 </html>
