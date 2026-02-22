@@ -1,0 +1,809 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tank Heating Calculator</title>
+  <style>
+    :root {
+      --bg: #111827;
+      --card: #1f2937;
+      --line: #334155;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --accent: #22c55e;
+      --accent2: #38bdf8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top, #1e293b, #0f172a 55%);
+      color: var(--text);
+      font: 14px/1.4 "Segoe UI", Tahoma, sans-serif;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .tab-btn {
+      border: 1px solid #475569;
+      border-radius: 8px;
+      background: #0f172a;
+      color: var(--text);
+      padding: 8px 12px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .tab-btn.active {
+      border-color: #0ea5e9;
+      background: #075985;
+    }
+    h1 {
+      margin: 0;
+      font-size: 22px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: rgba(31, 41, 55, 0.9);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    label {
+      display: block;
+      margin-bottom: 3px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    input, select, button {
+      width: 100%;
+      border: 1px solid #475569;
+      border-radius: 8px;
+      background: #0f172a;
+      color: var(--text);
+      padding: 8px;
+    }
+    button {
+      width: auto;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-primary {
+      border-color: #16a34a;
+      background: #166534;
+    }
+    .btn-secondary {
+      border-color: #0ea5e9;
+      background: #075985;
+    }
+    .kpis {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .kpi {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+    }
+    .kpi .t { color: var(--muted); font-size: 12px; }
+    .kpi .v { font-size: 18px; font-weight: 700; }
+    .note { color: var(--muted); font-size: 12px; }
+    .note a { color: #7dd3fc; }
+    .ok { color: #86efac; }
+    .bad { color: #fca5a5; }
+    .warn-field {
+      border-color: #ef4444 !important;
+      box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25);
+    }
+    canvas {
+      width: 100%;
+      height: 310px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #0b1220;
+    }
+    .inline {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .inline input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+    }
+    .panel-hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <h1>Tank Heating & Heat Loss Calculator</h1>
+    </div>
+
+    <div class="tabs">
+      <button id="tabCalcBtn" class="tab-btn active">Tank Calculator</button>
+      <button id="tabToolsBtn" class="tab-btn">Power Source Tools</button>
+    </div>
+
+    <div id="calcPanel">
+    <section class="card" style="margin-bottom:12px;">
+      <div class="inline">
+        <button id="loadExample" class="btn-secondary">Load Example (20 yd^3)</button>
+      </div>
+    </section>
+    <div class="grid">
+      <section class="card">
+        <div class="row">
+          <div>
+            <label>Length (ft)</label>
+            <input id="lengthFt" type="number" step="any" value="14">
+          </div>
+          <div>
+            <label>Width (ft)</label>
+            <input id="widthFt" type="number" step="any" value="8">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Water depth (ft)</label>
+            <input id="depthFt" type="number" step="any" value="5">
+          </div>
+          <div>
+            <label>Insulation R-Value (hr*ft^2*F/BTU)</label>
+            <input id="rValue" type="number" step="any" value="10">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Ambient air temp (F)</label>
+            <input id="ambientF" type="number" step="any" value="40">
+          </div>
+          <div>
+            <label>Start water temp (F)</label>
+            <input id="startF" type="number" step="any" value="40">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Target water temp (F)</label>
+            <input id="targetF" type="number" step="any" value="100">
+          </div>
+          <div>
+            <label>Power/Energy display units</label>
+            <select id="unitMode">
+              <option value="kw">kW / kWh</option>
+              <option value="btu">BTU/hr / BTU</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="inline" style="margin-top: 22px;">
+            <input id="covered" type="checkbox">
+            <label for="covered" style="margin:0;">Covered top (same R as walls)</label>
+          </div>
+          <div></div>
+        </div>
+
+        <hr style="border:0;border-top:1px solid var(--line);margin:10px 0;">
+
+        <div class="row">
+          <div>
+            <label>Solve mode</label>
+            <select id="solveMode">
+              <option value="requiredPower">Required power for a given time</option>
+              <option value="timeToTarget">Time to target for a given power</option>
+            </select>
+          </div>
+          <div>
+            <label id="maxHoursLabel">Max time to reach target (hours)</label>
+            <input id="maxHours" type="number" step="any" value="12">
+            <p id="maxHoursHint" class="note" style="margin:4px 0 0;">Used as the required heat-up time.</p>
+          </div>
+        </div>
+        <div class="row">
+          <div id="powerInputWrap" style="display:none;">
+            <label>Available heater power (kW)</label>
+            <input id="powerKW" type="number" step="any" value="100">
+          </div>
+          <div id="placeholderWrap"></div>
+          <div>
+            <label>Timestep (minutes)</label>
+            <input id="dtMin" type="number" step="any" value="2">
+          </div>
+        </div>
+        <p class="note">
+          Units are fixed: feet, F, gallons, and R-value. Tank shape is rectangular only.
+          Alternate tool reference:
+          <a href="https://gettopics.com/en/calc/water-heating-calculators" target="_blank" rel="noopener noreferrer">Water Heating Calculators</a>.
+        </p>
+      </section>
+
+      <section class="card">
+        <div class="kpis">
+          <div class="kpi">
+            <div class="t">Volume</div>
+            <div class="v" id="volumeOut">-</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Energy to heat (no losses)</div>
+            <div class="v" id="heatNoLossOut">-</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Estimated loss at mid-temp</div>
+            <div class="v" id="lossMidOut">-</div>
+          </div>
+          <div class="kpi">
+            <div class="t" id="solveTitle">Required average power</div>
+            <div class="v" id="solveOut">-</div>
+            <div class="note" id="feasibilityOut">-</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Maintain target (covered)</div>
+            <div class="v" id="maintCoveredOut">-</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Maintain target (uncovered)</div>
+            <div class="v" id="maintUncoveredOut">-</div>
+          </div>
+        </div>
+        <canvas id="plot"></canvas>
+        <p class="note">Plot: water temperature (green) and heat loss (blue) over time. Plot stops at target temperature or max time, whichever comes first.</p>
+      </section>
+    </div>
+    </div>
+
+    <div id="toolsPanel" class="panel-hidden">
+      <section class="card" style="max-width: 760px;">
+        <h2 style="margin:0 0 10px 0;font-size:16px;">Wood to Energy</h2>
+        <div class="row">
+          <div>
+            <label>Wood mass (lb)</label>
+            <input id="woodLbs" type="number" step="any" value="20">
+          </div>
+          <div>
+            <label>Wood energy content (BTU/lb)</label>
+            <input id="woodBtuPerLb" type="number" step="any" value="6500">
+          </div>
+          <div class="note" style="margin-top:24px;">
+            Uses: <code>BTU = lb * BTU/lb</code> and <code>kWh = BTU / 3412.14</code>.
+          </div>
+        </div>
+        <div class="kpis">
+          <div class="kpi">
+            <div class="t">Fuel energy (gross)</div>
+            <div class="v" id="woodGrossKwhOut">-</div>
+            <div class="note" id="woodGrossBtuOut">-</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" style="max-width: 760px; margin-top: 12px;">
+        <h2 style="margin:0 0 10px 0;font-size:16px;">Chimney External Copper Coil</h2>
+        <p class="note">
+          Assumed setup: conventional enclosed wood stove/firebox with natural-draft chimney, using an external copper coil heat exchanger.
+          This models a standard stove-style configuration (not a rocket stove/down-draft gasifier) and uses observed water-side efficiency from Part 3 style tests.
+          Source:
+          <a href="https://greenhillforge.com/blogs/resources/new-water-heater-test-results-best-wood-stove-water-heater-yet-off-grid-water-heater-part-3" target="_blank" rel="noopener noreferrer">Part 3 test page</a>.
+        </p>
+        <div class="row">
+          <div>
+            <label>Reference test</label>
+            <select id="part3Preset">
+              <option value="coil">Test #1 Coil Only</option>
+              <option value="insulated">Test #2 Insulated Coil</option>
+              <option value="sand" selected>Test #3 Coil w/ Sand</option>
+              <option value="graphite">Test #4 Coil w/ Graphite</option>
+            </select>
+          </div>
+          <div></div>
+        </div>
+        <div class="card" style="background:rgba(15,23,42,.55);border-color:#475569;margin-bottom:12px;">
+          <div class="t" style="margin-bottom:6px;">Part 3 Test Values (Read Only, converted to lb/hr)</div>
+          <div class="note" id="part3TestSummary">-</div>
+        </div>
+
+        <hr style="border:0;border-top:1px solid var(--line);margin:12px 0;">
+        <h3 style="margin:0 0 8px 0;font-size:14px;color:#cbd5e1;">Extrapolation (Larger System)</h3>
+        <div class="row">
+          <div>
+            <label>Wood feed rate (lb/hr)</label>
+            <input id="part3FeedLbHr" type="number" step="any" value="20">
+          </div>
+          <div>
+            <label>Wood energy content (BTU/lb)</label>
+            <input id="part3ExBtuPerLb" type="number" step="any" value="6500">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Efficiency (%)</label>
+            <input id="part3Eff" type="number" step="any" value="10">
+          </div>
+          <div></div>
+        </div>
+        <div class="kpis">
+          <div class="kpi">
+            <div class="t">Delivered power</div>
+            <div class="v" id="part3ExPowerKwOut">-</div>
+            <div class="note" id="part3ExPowerBtuOut">-</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Delivered energy in 24h</div>
+            <div class="v" id="part3ExEnergyKwhOut">-</div>
+            <div class="note" id="part3ExEnergyBtuOut">-</div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const FT3_TO_GAL = 7.48051948;
+    const FT2_TO_M2 = 0.09290304;
+    const F_DELTA_TO_C_DELTA = 5 / 9;
+    const BTU_PER_KWH = 3412.141633;
+    const BTU_PER_HR_PER_KW = 3412.141633;
+    const PART3_PRESETS = {
+      coil: { label: "Test #1 Coil Only", efficiency: 0.09, minutes: 152, wood: 21.9, powerKw: 1.4 },
+      insulated: { label: "Test #2 Insulated Coil", efficiency: 0.09, minutes: 137, wood: 22.3, powerKw: 1.7 },
+      sand: { label: "Test #3 Coil w/ Sand", efficiency: 0.10, minutes: 83, wood: 18.7, powerKw: 2.7 },
+      graphite: { label: "Test #4 Coil w/ Graphite", efficiency: 0.15, minutes: 64, wood: 13.1, powerKw: 3.5 }
+    };
+
+    const rho = 997; // kg/m^3
+    const cp = 4186; // J/kg-K
+    const FT3_TO_M3 = 0.0283168466;
+    const J_PER_KWH = 3600000;
+
+    const $ = (id) => document.getElementById(id);
+
+    function fToC(f) { return (f - 32) * 5 / 9; }
+    function cToF(c) { return c * 9 / 5 + 32; }
+
+    function satPressureInHg(tempF) {
+      const tc = fToC(tempF);
+      const A = 8.07131, B = 1730.63, C = 233.426;
+      const mmHg = Math.pow(10, A - (B / (C + tc)));
+      return mmHg / 25.4;
+    }
+
+    function volumeFt3() {
+      return Number($("lengthFt").value) * Number($("widthFt").value) * Number($("depthFt").value);
+    }
+
+    function areaTopFt2() {
+      return Number($("lengthFt").value) * Number($("widthFt").value);
+    }
+
+    function areaSidesBottomFt2() {
+      const L = Number($("lengthFt").value);
+      const W = Number($("widthFt").value);
+      const H = Number($("depthFt").value);
+      return 2 * (L * H + W * H) + (L * W);
+    }
+
+    function lossBtuHr(tempWaterF, coveredOverride = null) {
+      const r = Math.max(0.001, Number($("rValue").value));
+      const ta = Number($("ambientF").value);
+      const dt = tempWaterF - ta;
+      const aTop = areaTopFt2();
+      const aSides = areaSidesBottomFt2();
+      const useCovered = coveredOverride === null ? $("covered").checked : coveredOverride;
+
+      const qSides = (aSides * dt) / r;
+      if (useCovered) {
+        const qTopCond = (aTop * dt) / r;
+        return Math.max(0, qSides + qTopCond);
+      }
+
+      const hConv = 1.25; // BTU/hr-ft2-F, rough natural convection
+      const qConv = hConv * aTop * dt;
+
+      const twR = tempWaterF + 459.67;
+      const taR = ta + 459.67;
+      const sigma = 0.1714e-8; // BTU/hr-ft2-R4
+      const emissivity = 0.96;
+      const qRad = emissivity * sigma * aTop * (Math.pow(twR, 4) - Math.pow(taR, 4));
+
+      const rh = 0.5;
+      const af = 1.0;
+      const pw = satPressureInHg(tempWaterF);
+      const pa = rh * satPressureInHg(ta);
+      const mdotLbHr = 0.1 * aTop * af * Math.max(0, pw - pa);
+      const qEvap = mdotLbHr * 1050;
+
+      return Math.max(0, qSides + qConv + qRad + qEvap);
+    }
+
+    function energyNoLossKWh() {
+      const gallons = volumeFt3() * FT3_TO_GAL;
+      const dTF = Number($("targetF").value) - Number($("startF").value);
+      return gallons * 8.34 * dTF / BTU_PER_KWH;
+    }
+
+    function simulate(powerKW, hours, dtMin) {
+      const V_m3 = volumeFt3() * FT3_TO_M3;
+      const m = V_m3 * rho;
+      const dtS = dtMin * 60;
+      const steps = Math.max(1, Math.floor((hours * 60) / dtMin));
+
+      let twC = fToC(Number($("startF").value));
+      const targetC = fToC(Number($("targetF").value));
+      const heating = targetC >= twC;
+      const xs = [];
+      const tempsF = [];
+      const lossesKW = [];
+      let hitTimeHr = null;
+
+      for (let i = 0; i <= steps; i++) {
+        const hr = i * dtMin / 60;
+        const twF = cToF(twC);
+        const qLossKW = lossBtuHr(twF) / BTU_PER_HR_PER_KW;
+        xs.push(hr);
+        tempsF.push(twF);
+        lossesKW.push(qLossKW);
+
+        const qNetW = (powerKW - qLossKW) * 1000;
+        const dT = (qNetW * dtS) / (m * cp);
+        twC += dT;
+        if (hitTimeHr === null) {
+          if ((heating && twC >= targetC) || (!heating && twC <= targetC)) {
+            hitTimeHr = hr;
+            break;
+          }
+        }
+      }
+      return { xs, tempsF, lossesKW, hitTimeHr };
+    }
+
+    function drawPlot(xs, ys1, ys2) {
+      const cv = $("plot");
+      const ctx = cv.getContext("2d");
+      const dpr = window.devicePixelRatio || 1;
+      const r = cv.getBoundingClientRect();
+      cv.width = Math.floor(r.width * dpr);
+      cv.height = Math.floor(r.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const w = r.width, h = r.height;
+      ctx.clearRect(0, 0, w, h);
+
+      const p = { l: 56, r: 56, t: 26, b: 34 };
+      const pw = w - p.l - p.r;
+      const ph = h - p.t - p.b;
+
+      const xmin = 0, xmax = Math.max(...xs);
+      const y1min = Math.min(...ys1), y1max = Math.max(...ys1);
+      const y2min = 0, y2max = Math.max(1, ...ys2);
+
+      const xMap = (x) => p.l + (x - xmin) / (xmax - xmin || 1) * pw;
+      const y1Map = (y) => p.t + (1 - (y - y1min) / (y1max - y1min || 1)) * ph;
+      const y2Map = (y) => p.t + (1 - (y - y2min) / (y2max - y2min || 1)) * ph;
+
+      const gridX = 8;
+      const gridY = 6;
+      ctx.strokeStyle = "rgba(71,85,105,0.35)";
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= gridX; i++) {
+        const x = p.l + (pw * i / gridX);
+        ctx.beginPath();
+        ctx.moveTo(x, p.t);
+        ctx.lineTo(x, p.t + ph);
+        ctx.stroke();
+      }
+      for (let j = 0; j <= gridY; j++) {
+        const y = p.t + (ph * j / gridY);
+        ctx.beginPath();
+        ctx.moveTo(p.l, y);
+        ctx.lineTo(p.l + pw, y);
+        ctx.stroke();
+      }
+
+      ctx.strokeStyle = "#334155";
+      ctx.strokeRect(p.l, p.t, pw, ph);
+
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "12px Segoe UI";
+      ctx.fillText("Temp (F)", 6, 16);
+      ctx.fillText("Loss (kW)", w - 66, 16);
+      ctx.fillText("Time (h)", w / 2 - 20, h - 8);
+
+      // Axis ticks and numeric labels
+      ctx.strokeStyle = "#64748b";
+      ctx.fillStyle = "#94a3b8";
+      ctx.lineWidth = 1;
+      const xDecimals = (xmax <= 10) ? 1 : 0;
+      for (let i = 0; i <= gridX; i++) {
+        const xVal = xmin + (xmax - xmin) * i / gridX;
+        const x = xMap(xVal);
+        ctx.beginPath();
+        ctx.moveTo(x, p.t + ph);
+        ctx.lineTo(x, p.t + ph + 5);
+        ctx.stroke();
+        const label = xVal.toFixed(xDecimals);
+        const tw = ctx.measureText(label).width;
+        ctx.fillText(label, x - tw / 2, p.t + ph + 18);
+      }
+      for (let j = 0; j <= gridY; j++) {
+        const tVal = y1min + (y1max - y1min) * (gridY - j) / gridY;
+        const y = y1Map(tVal);
+        ctx.beginPath();
+        ctx.moveTo(p.l - 5, y);
+        ctx.lineTo(p.l, y);
+        ctx.stroke();
+        const tLabel = tVal.toFixed(1);
+        const tw = ctx.measureText(tLabel).width;
+        ctx.fillText(tLabel, p.l - 8 - tw, y + 4);
+      }
+      for (let j = 0; j <= gridY; j++) {
+        const lVal = y2min + (y2max - y2min) * (gridY - j) / gridY;
+        const y = y2Map(lVal);
+        ctx.beginPath();
+        ctx.moveTo(p.l + pw, y);
+        ctx.lineTo(p.l + pw + 5, y);
+        ctx.stroke();
+        const lLabel = lVal.toFixed(1);
+        ctx.fillText(lLabel, p.l + pw + 8, y + 4);
+      }
+
+      ctx.strokeStyle = "#22c55e";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      xs.forEach((x, i) => {
+        const X = xMap(x), Y = y1Map(ys1[i]);
+        if (i === 0) ctx.moveTo(X, Y);
+        else ctx.lineTo(X, Y);
+      });
+      ctx.stroke();
+
+      ctx.strokeStyle = "#38bdf8";
+      ctx.beginPath();
+      xs.forEach((x, i) => {
+        const X = xMap(x), Y = y2Map(ys2[i]);
+        if (i === 0) ctx.moveTo(X, Y);
+        else ctx.lineTo(X, Y);
+      });
+      ctx.stroke();
+
+      // Legend
+      const legendW = 148;
+      const legendH = 44;
+      const legendX = p.l + pw - legendW - 8;
+      const legendY = p.t + 8;
+      ctx.fillStyle = "rgba(15,23,42,0.88)";
+      ctx.fillRect(legendX, legendY, legendW, legendH);
+      ctx.strokeStyle = "#334155";
+      ctx.strokeRect(legendX, legendY, legendW, legendH);
+
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#22c55e";
+      ctx.beginPath();
+      ctx.moveTo(legendX + 8, legendY + 14);
+      ctx.lineTo(legendX + 32, legendY + 14);
+      ctx.stroke();
+      ctx.fillStyle = "#e5e7eb";
+      ctx.fillText("Water Temp (F)", legendX + 38, legendY + 18);
+
+      ctx.strokeStyle = "#38bdf8";
+      ctx.beginPath();
+      ctx.moveTo(legendX + 8, legendY + 31);
+      ctx.lineTo(legendX + 32, legendY + 31);
+      ctx.stroke();
+      ctx.fillText("Heat Loss (kW)", legendX + 38, legendY + 35);
+    }
+
+    function compute() {
+      const gallons = volumeFt3() * FT3_TO_GAL;
+      const eNoLossKWh = energyNoLossKWh();
+      const tMid = (Number($("startF").value) + Number($("targetF").value)) / 2;
+      const lossMidKW = lossBtuHr(tMid) / BTU_PER_HR_PER_KW;
+      const tTarget = Number($("targetF").value);
+      const maintCoveredKW = lossBtuHr(tTarget, true) / BTU_PER_HR_PER_KW;
+      const maintUncoveredKW = lossBtuHr(tTarget, false) / BTU_PER_HR_PER_KW;
+      const maintCurrentKW = lossBtuHr(tTarget, null) / BTU_PER_HR_PER_KW;
+      const currentMaintId = $("covered").checked ? "maintCoveredOut" : "maintUncoveredOut";
+
+      // Reset warning/highlight state each run.
+      $("powerKW").classList.remove("warn-field");
+      $("maintCoveredOut").classList.remove("bad");
+      $("maintUncoveredOut").classList.remove("bad");
+
+      $("volumeOut").textContent = gallons.toFixed(0) + " gal";
+      $("lossMidOut").textContent = lossMidKW.toFixed(1) + " kW";
+
+      const mode = $("solveMode").value;
+      const dtMin = Math.max(0.2, Number($("dtMin").value));
+      const maxHours = Math.max(0.01, Number($("maxHours").value));
+      let runPowerKW = 0;
+      let simMaxHours = maxHours;
+
+      if (mode === "requiredPower") {
+        runPowerKW = (eNoLossKWh / maxHours) + lossMidKW;
+        $("solveTitle").textContent = "Required average power";
+        $("solveOut").classList.remove("ok", "bad");
+        $("feasibilityOut").classList.remove("ok", "bad");
+        $("feasibilityOut").textContent = "Computed target power includes estimated losses.";
+        if ($("unitMode").value === "btu") {
+          $("solveOut").textContent = (runPowerKW * BTU_PER_HR_PER_KW).toFixed(0) + " BTU/hr";
+          $("heatNoLossOut").textContent = (eNoLossKWh * BTU_PER_KWH).toFixed(0) + " BTU";
+          $("maintCoveredOut").textContent = (maintCoveredKW * BTU_PER_HR_PER_KW).toFixed(0) + " BTU/hr";
+          $("maintUncoveredOut").textContent = (maintUncoveredKW * BTU_PER_HR_PER_KW).toFixed(0) + " BTU/hr";
+        } else {
+          $("solveOut").textContent = runPowerKW.toFixed(1) + " kW";
+          $("heatNoLossOut").textContent = eNoLossKWh.toFixed(1) + " kWh";
+          $("maintCoveredOut").textContent = maintCoveredKW.toFixed(1) + " kW";
+          $("maintUncoveredOut").textContent = maintUncoveredKW.toFixed(1) + " kW";
+        }
+      } else {
+        runPowerKW = Math.max(0, Number($("powerKW").value));
+        const simForTime = simulate(runPowerKW, simMaxHours, dtMin);
+        const reqAvgForMaxKW = (eNoLossKWh / maxHours) + lossMidKW;
+        $("solveTitle").textContent = "Estimated time to target";
+        $("solveOut").textContent = simForTime.hitTimeHr === null ? "Not reached by max time" : simForTime.hitTimeHr.toFixed(2) + " hr";
+        $("solveOut").classList.remove("ok", "bad");
+        $("feasibilityOut").classList.remove("ok", "bad");
+        if (simForTime.hitTimeHr === null) {
+          const reqText = $("unitMode").value === "btu"
+            ? (reqAvgForMaxKW * BTU_PER_HR_PER_KW).toFixed(0) + " BTU/hr"
+            : reqAvgForMaxKW.toFixed(1) + " kW";
+          $("solveOut").classList.add("bad");
+          $("feasibilityOut").classList.add("bad");
+          $("feasibilityOut").textContent = "Not achievable within max time at supplied power. Estimated average power needed for this max time is about " + reqText + ".";
+        } else {
+          $("solveOut").classList.add("ok");
+          $("feasibilityOut").classList.add("ok");
+          $("feasibilityOut").textContent = "Achievable within max time at supplied power.";
+        }
+
+        if (runPowerKW < maintCurrentKW) {
+          $("powerKW").classList.add("warn-field");
+          $(currentMaintId).classList.add("bad");
+        }
+        if ($("unitMode").value === "btu") {
+          $("heatNoLossOut").textContent = (eNoLossKWh * BTU_PER_KWH).toFixed(0) + " BTU";
+          $("maintCoveredOut").textContent = (maintCoveredKW * BTU_PER_HR_PER_KW).toFixed(0) + " BTU/hr";
+          $("maintUncoveredOut").textContent = (maintUncoveredKW * BTU_PER_HR_PER_KW).toFixed(0) + " BTU/hr";
+        } else {
+          $("heatNoLossOut").textContent = eNoLossKWh.toFixed(1) + " kWh";
+          $("maintCoveredOut").textContent = maintCoveredKW.toFixed(1) + " kW";
+          $("maintUncoveredOut").textContent = maintUncoveredKW.toFixed(1) + " kW";
+        }
+      }
+
+      const sim = simulate(runPowerKW, simMaxHours, dtMin);
+      drawPlot(sim.xs, sim.tempsF, sim.lossesKW);
+    }
+
+    function toggleSolveInputs() {
+      const mode = $("solveMode").value;
+      $("powerInputWrap").style.display = mode === "timeToTarget" ? "block" : "none";
+      $("placeholderWrap").style.display = mode === "timeToTarget" ? "none" : "block";
+      if (mode === "timeToTarget") {
+        $("maxHoursLabel").textContent = "Simulation max time (hours)";
+        $("maxHoursHint").textContent = "Simulation stops at target temperature or this max time.";
+      } else {
+        $("maxHoursLabel").textContent = "Time to reach target (hours)";
+        $("maxHoursHint").textContent = "Used as the required heat-up time.";
+      }
+    }
+
+    function loadExample() {
+      $("lengthFt").value = 14;
+      $("widthFt").value = 8;
+      $("depthFt").value = 5;
+      $("rValue").value = 10;
+      $("covered").checked = true;
+      $("ambientF").value = 40;
+      $("startF").value = 40;
+      $("targetF").value = 100;
+      $("solveMode").value = "timeToTarget";
+      $("powerKW").value = 20;
+      $("maxHours").value = 48;
+      $("dtMin").value = 2;
+      toggleSolveInputs();
+      compute();
+    }
+
+    function setActiveTab(tabName) {
+      const isCalc = tabName === "calc";
+      $("calcPanel").classList.toggle("panel-hidden", !isCalc);
+      $("toolsPanel").classList.toggle("panel-hidden", isCalc);
+      $("tabCalcBtn").classList.toggle("active", isCalc);
+      $("tabToolsBtn").classList.toggle("active", !isCalc);
+    }
+
+    function computeWoodTool() {
+      const lbs = Math.max(0, Number($("woodLbs").value));
+      const btuPerLb = Math.max(0, Number($("woodBtuPerLb").value));
+      const grossBtu = lbs * btuPerLb;
+      const grossKwh = grossBtu / BTU_PER_KWH;
+
+      $("woodGrossKwhOut").textContent = grossKwh.toFixed(2) + " kWh";
+      $("woodGrossBtuOut").textContent = grossBtu.toFixed(0) + " BTU";
+    }
+
+    function renderPart3Summary() {
+      const p = PART3_PRESETS[$("part3Preset").value];
+      const feedLbHr = p.wood * 60 / p.minutes;
+      $("part3TestSummary").innerHTML =
+        `<strong>${p.label}</strong><br>` +
+        `${p.wood.toFixed(1)} lb in ${p.minutes} min -> ${feedLbHr.toFixed(2)} lb/hr<br>` +
+        `${Math.round(p.efficiency * 100)}% efficiency, reported ${p.powerKw.toFixed(1)} kW`;
+    }
+
+    function applyPart3PresetToExtrapolation() {
+      const p = PART3_PRESETS[$("part3Preset").value];
+      const feedLbHr = p.wood * 60 / p.minutes;
+      const effPct = p.efficiency * 100;
+      $("part3FeedLbHr").value = feedLbHr.toFixed(2);
+      $("part3Eff").value = effPct.toFixed(1);
+      renderPart3Summary();
+      computePart3Extrapolation();
+    }
+
+    function computePart3Extrapolation() {
+      const feed = Math.max(0, Number($("part3FeedLbHr").value));
+      const btuPerLb = Math.max(0, Number($("part3ExBtuPerLb").value));
+      const eff = Math.max(0, Number($("part3Eff").value)) / 100;
+
+      const grossBtuHr = feed * btuPerLb;
+      const pBtuHr = grossBtuHr * eff;
+      const pKw = pBtuHr / BTU_PER_HR_PER_KW;
+      const e24Kwh = pKw * 24;
+      const e24Btu = pBtuHr * 24;
+
+      $("part3ExPowerKwOut").textContent = pKw.toFixed(2) + " kW";
+      $("part3ExPowerBtuOut").textContent = pBtuHr.toFixed(0) + " BTU/hr";
+      $("part3ExEnergyKwhOut").textContent = e24Kwh.toFixed(1) + " kWh/day";
+      $("part3ExEnergyBtuOut").textContent = e24Btu.toFixed(0) + " BTU/day";
+    }
+
+    $("loadExample").addEventListener("click", loadExample);
+    $("tabCalcBtn").addEventListener("click", () => setActiveTab("calc"));
+    $("tabToolsBtn").addEventListener("click", () => setActiveTab("tools"));
+    $("solveMode").addEventListener("change", () => { toggleSolveInputs(); compute(); });
+    ["lengthFt","widthFt","depthFt","rValue","covered","ambientF","startF","targetF","unitMode","maxHours","powerKW","dtMin"]
+      .forEach((id) => $(id).addEventListener("input", compute));
+    ["woodLbs", "woodBtuPerLb"]
+      .forEach((id) => $(id).addEventListener("input", computeWoodTool));
+    ["part3FeedLbHr", "part3ExBtuPerLb", "part3Eff"]
+      .forEach((id) => $(id).addEventListener("input", computePart3Extrapolation));
+    $("part3Preset").addEventListener("change", applyPart3PresetToExtrapolation);
+
+    toggleSolveInputs();
+    setActiveTab("calc");
+    loadExample();
+    computeWoodTool();
+    applyPart3PresetToExtrapolation();
+  </script>
+</body>
+</html>
