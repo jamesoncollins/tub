@@ -158,12 +158,13 @@
     <div class="tabs">
       <button id="tabCalcBtn" class="tab-btn active">Tank Calculator</button>
       <button id="tabToolsBtn" class="tab-btn">Power Source Tools</button>
+      <button id="tabConstBtn" class="tab-btn">Constants & Formulas</button>
     </div>
 
     <div id="calcPanel">
     <section class="card" style="margin-bottom:12px;">
       <div class="inline">
-        <button id="loadExample" class="btn-secondary">Load Example (20 yd^3)</button>
+        <button id="loadExample" class="btn-secondary">Load Example (22' x 8' x 5')</button>
       </div>
     </section>
     <div class="grid">
@@ -171,7 +172,7 @@
         <div class="row">
           <div>
             <label>Length (ft)</label>
-            <input id="lengthFt" type="number" step="any" value="14">
+            <input id="lengthFt" type="number" step="any" value="22">
           </div>
           <div>
             <label>Width (ft)</label>
@@ -231,7 +232,7 @@
           </div>
           <div>
             <label id="maxHoursLabel">Max time to reach target (hours)</label>
-            <input id="maxHours" type="number" step="any" value="12">
+            <input id="maxHours" type="number" step="any" value="168">
             <p id="maxHoursHint" class="note" style="margin:4px 0 0;">Used as the required heat-up time.</p>
           </div>
         </div>
@@ -289,7 +290,7 @@
 
     <div id="toolsPanel" class="panel-hidden">
       <section class="card" style="max-width: 760px;">
-        <h2 style="margin:0 0 10px 0;font-size:16px;">Wood to Energy</h2>
+        <h2 style="margin:0 0 10px 0;font-size:16px;">Wood Energy & Fire Power</h2>
         <div class="row">
           <div>
             <label>Wood mass (lb)</label>
@@ -299,15 +300,43 @@
             <label>Wood energy content (BTU/lb)</label>
             <input id="woodBtuPerLb" type="number" step="any" value="6500">
           </div>
-          <div class="note" style="margin-top:24px;">
-            Uses: <code>BTU = lb * BTU/lb</code> and <code>kWh = BTU / 3412.14</code>.
+        </div>
+        <div class="row">
+          <div>
+            <label>Burn rate (lb/hr)</label>
+            <input id="woodBurnLbHr" type="number" step="any" value="2">
           </div>
+          <div>
+            <label>Burn rate (logs/hr)</label>
+            <input id="woodLogsHr" type="number" step="any" value="1">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Approx log weight (lb/log)</label>
+            <input id="woodLogLb" type="number" step="any" value="5">
+          </div>
+          <div></div>
+        </div>
+        <div class="row">
+          <div class="note" style="margin-top:24px;">
+            Uses: <code>BTU = lb * BTU/lb</code>, <code>kWh = BTU / 3412.14</code>, and
+            <code>Fire power (BTU/hr) = burn(lb/hr) * BTU/lb</code>,
+            <code>logs/hr = burn(lb/hr) / lb per log</code>,
+            <code>burn(lb/hr) = logs/hr * lb per log</code>.
+          </div>
+          <div></div>
         </div>
         <div class="kpis">
           <div class="kpi">
             <div class="t">Fuel energy (gross)</div>
             <div class="v" id="woodGrossKwhOut">-</div>
             <div class="note" id="woodGrossBtuOut">-</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Total fire power (gross)</div>
+            <div class="v" id="woodFireKwOut">-</div>
+            <div class="note" id="woodFireBtuHrOut">-</div>
           </div>
         </div>
       </section>
@@ -328,21 +357,21 @@
         <div class="row">
           <div>
             <label>Flow (GPM)</label>
-            <input id="fdtFlowGpm" type="number" step="any" value="2.5">
+            <input id="fdtFlowGpm" type="text" inputmode="decimal" value="2.5">
           </div>
           <div>
             <label>Delta-T (F)</label>
-            <input id="fdtDeltaF" type="number" step="any" value="8">
+            <input id="fdtDeltaF" type="text" inputmode="decimal" value="8">
           </div>
         </div>
         <div class="row">
           <div>
             <label>Power (kW)</label>
-            <input id="fdtPowerKw" type="number" step="any" value="2.9">
+            <input id="fdtPowerKw" type="text" inputmode="decimal" value="2.9">
           </div>
           <div>
             <label>Power (BTU/hr)</label>
-            <input id="fdtPowerBtuHr" type="number" step="any" value="10000">
+            <input id="fdtPowerBtuHr" type="text" inputmode="numeric" value="10000">
           </div>
         </div>
         <p class="note" id="fdtNote">Uses Q(BTU/hr) = 500 * GPM * Delta-T(F) for water.</p>
@@ -512,6 +541,99 @@
             <div class="note" id="scaleImpliedEffNote">-</div>
           </div>
         </div>
+      </section>
+
+      <section class="card" style="max-width: 760px; margin-top: 12px;">
+        <h2 style="margin:0 0 10px 0;font-size:16px;">Pipe Pressure Drop</h2>
+        <p class="note">
+          Computes pressure drop for water in copper tube using Darcy-Weisbach.
+          Defaults are 1/2 in Type L copper: OD 0.625 in, wall 0.040 in.
+        </p>
+        <div class="row">
+          <div>
+            <label>Tube OD (in)</label>
+            <input id="pipeOdIn" type="number" step="any" value="0.625">
+          </div>
+          <div>
+            <label>Nominal wall thickness (in)</label>
+            <input id="pipeWallIn" type="number" step="any" value="0.040">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Flow (GPM)</label>
+            <input id="pipeFlowGpm" type="number" step="any" value="2.5">
+          </div>
+          <div>
+            <label>Pipe length (ft)</label>
+            <input id="pipeLengthFt" type="number" step="any" value="100">
+          </div>
+        </div>
+        <div class="kpis">
+          <div class="kpi">
+            <div class="t">Inner diameter</div>
+            <div class="v" id="pipeIdInOut">-</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Velocity</div>
+            <div class="v" id="pipeVelFtSOut">-</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Pressure drop (length entered)</div>
+            <div class="v" id="pipeDpPsiOut">-</div>
+            <div class="note" id="pipeHeadFtOut">-</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Pressure drop per 100 ft</div>
+            <div class="v" id="pipeDp100PsiOut">-</div>
+            <div class="note" id="pipeHead100FtOut">-</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Reynolds number</div>
+            <div class="v" id="pipeReOut">-</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Darcy friction factor</div>
+            <div class="v" id="pipeFOut">-</div>
+          </div>
+        </div>
+        <p class="note" id="pipeDropNote">Assumes water near 60 F and smooth copper roughness.</p>
+      </section>
+    </div>
+
+    <div id="constPanel" class="panel-hidden">
+      <section class="card" style="max-width: 760px;">
+        <h2 style="margin:0 0 10px 0;font-size:16px;">Handy Constants</h2>
+        <div class="kpis">
+          <div class="kpi">
+            <div class="t">Water weight</div>
+            <div class="v">8.34 lb/gal</div>
+            <div class="note">At typical room temperature.</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Specific heat of water</div>
+            <div class="v">1 BTU/(lb*F)</div>
+            <div class="note">Reference value used by this tool.</div>
+          </div>
+          <div class="kpi">
+            <div class="t">BTU to kWh</div>
+            <div class="v">1 kWh = 3412.14 BTU</div>
+            <div class="note">Also: 1 BTU = 0.000293071 kWh.</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Water heat capacity by gallon</div>
+            <div class="v">0.002444 kWh/(gal*F)</div>
+            <div class="note">From 8.34 / 3412.14. Example: heating 100 gal by 20 F needs about 100 * 20 * 0.002444 = 4.89 kWh.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" style="max-width: 760px; margin-top: 12px;">
+        <h2 style="margin:0 0 10px 0;font-size:16px;">Handy Formulas</h2>
+        <p class="note"><strong>Energy to heat water (kWh):</strong><br><code>E_kWh = gallons * DeltaT_F * 0.002444</code></p>
+        <p class="note"><strong>Hydronic heat transfer rate from flow and delta-T:</strong><br><code>Q_BTUhr = 500 * GPM * DeltaT_F</code></p>
+        <p class="note"><strong>Same equation in kW:</strong><br><code>Q_kW = (500 * GPM * DeltaT_F) / 3412.14</code></p>
+        <p class="note"><strong>Pipe pressure drop (Darcy-Weisbach):</strong><br><code>DeltaP = f * (L/D) * (rho * v^2 / 2)</code></p>
       </section>
     </div>
   </div>
@@ -867,7 +989,7 @@
     }
 
     function loadExample() {
-      $("lengthFt").value = 14;
+      $("lengthFt").value = 22;
       $("widthFt").value = 8;
       $("depthFt").value = 5;
       $("rValue").value = 10;
@@ -877,7 +999,7 @@
       $("targetF").value = 100;
       $("solveMode").value = "timeToTarget";
       $("powerKW").value = 20;
-      $("maxHours").value = 48;
+      $("maxHours").value = 168;
       $("dtMin").value = 2;
       toggleSolveInputs();
       compute();
@@ -885,20 +1007,42 @@
 
     function setActiveTab(tabName) {
       const isCalc = tabName === "calc";
+      const isTools = tabName === "tools";
+      const isConst = tabName === "const";
       $("calcPanel").classList.toggle("panel-hidden", !isCalc);
-      $("toolsPanel").classList.toggle("panel-hidden", isCalc);
+      $("toolsPanel").classList.toggle("panel-hidden", !isTools);
+      $("constPanel").classList.toggle("panel-hidden", !isConst);
       $("tabCalcBtn").classList.toggle("active", isCalc);
-      $("tabToolsBtn").classList.toggle("active", !isCalc);
+      $("tabToolsBtn").classList.toggle("active", isTools);
+      $("tabConstBtn").classList.toggle("active", isConst);
     }
 
-    function computeWoodTool() {
+    function computeWoodTool(changed = "") {
       const lbs = Math.max(0, Number($("woodLbs").value));
       const btuPerLb = Math.max(0, Number($("woodBtuPerLb").value));
+      let burnLbHr = Math.max(0, Number($("woodBurnLbHr").value));
+      let logsHr = Math.max(0, Number($("woodLogsHr").value));
+      const logLb = Math.max(0, Number($("woodLogLb").value));
+
+      if (changed === "burn") {
+        logsHr = logLb > 0 ? (burnLbHr / logLb) : 0;
+      } else if (changed === "logs") {
+        burnLbHr = logsHr * logLb;
+      } else {
+        logsHr = logLb > 0 ? (burnLbHr / logLb) : 0;
+      }
+
       const grossBtu = lbs * btuPerLb;
       const grossKwh = grossBtu / BTU_PER_KWH;
+      const fireBtuHr = burnLbHr * btuPerLb;
+      const fireKw = fireBtuHr / BTU_PER_HR_PER_KW;
 
+      if (changed !== "burn") $("woodBurnLbHr").value = burnLbHr.toFixed(3);
+      if (changed !== "logs") $("woodLogsHr").value = logsHr.toFixed(3);
       $("woodGrossKwhOut").textContent = grossKwh.toFixed(2) + " kWh";
       $("woodGrossBtuOut").textContent = grossBtu.toFixed(0) + " BTU";
+      $("woodFireKwOut").textContent = fireKw.toFixed(2) + " kW";
+      $("woodFireBtuHrOut").textContent = fireBtuHr.toFixed(0) + " BTU/hr";
     }
 
     function renderPart3Summary() {
@@ -939,10 +1083,26 @@
 
     function computeFlowDeltaPower(changed = "") {
       const solve = $("fdtSolve").value;
-      let gpm = Math.max(0, Number($("fdtFlowGpm").value));
-      let dtF = Math.max(0, Number($("fdtDeltaF").value));
-      let kw = Math.max(0, Number($("fdtPowerKw").value));
-      let btuHr = Math.max(0, Number($("fdtPowerBtuHr").value));
+      const parseNonNegative = (id) => {
+        const raw = $(id).value.trim();
+        if (raw === "") return null;
+        const n = Number(raw);
+        return Number.isFinite(n) ? Math.max(0, n) : null;
+      };
+      let gpm = parseNonNegative("fdtFlowGpm");
+      let dtF = parseNonNegative("fdtDeltaF");
+      let kw = parseNonNegative("fdtPowerKw");
+      let btuHr = parseNonNegative("fdtPowerBtuHr");
+
+      if (changed === "flow" && gpm === null) return;
+      if (changed === "dt" && dtF === null) return;
+      if (changed === "kw" && kw === null) return;
+      if (changed === "btu" && btuHr === null) return;
+
+      gpm = gpm ?? 0;
+      dtF = dtF ?? 0;
+      kw = kw ?? 0;
+      btuHr = btuHr ?? 0;
 
       if (changed === "kw") btuHr = kw * BTU_PER_HR_PER_KW;
       if (changed === "btu") kw = btuHr / BTU_PER_HR_PER_KW;
@@ -959,10 +1119,10 @@
         $("fdtNote").textContent = "Computed delta-T from power and flow.";
       }
 
-      $("fdtFlowGpm").value = gpm.toFixed(3);
-      $("fdtDeltaF").value = dtF.toFixed(3);
-      $("fdtPowerKw").value = kw.toFixed(3);
-      $("fdtPowerBtuHr").value = btuHr.toFixed(0);
+      if (changed !== "flow") $("fdtFlowGpm").value = gpm.toFixed(3);
+      if (changed !== "dt") $("fdtDeltaF").value = dtF.toFixed(3);
+      if (changed !== "kw") $("fdtPowerKw").value = kw.toFixed(3);
+      if (changed !== "btu") $("fdtPowerBtuHr").value = btuHr.toFixed(0);
     }
 
     function updateFlowSolveUI() {
@@ -1029,15 +1189,82 @@
       $("scaleImpliedEffNote").textContent = "Derived from baseline raw inputs.";
     }
 
+    function computePipePressureDrop() {
+      const IN_TO_M = 0.0254;
+      const FT_TO_M = 0.3048;
+      const M_TO_FT = 3.280839895;
+      const GPM_TO_M3_S = 0.003785411784 / 60;
+      const PA_PER_PSI = 6894.757293;
+      const MU_WATER = 0.001002; // Pa*s, water near 60 F
+      const EPS_COPPER = 0.0000015; // m, smooth drawn copper roughness
+      const G = 9.80665;
+
+      const odIn = Math.max(0, Number($("pipeOdIn").value));
+      const wallIn = Math.max(0, Number($("pipeWallIn").value));
+      const flowGpm = Math.max(0, Number($("pipeFlowGpm").value));
+      const lengthFt = Math.max(0, Number($("pipeLengthFt").value));
+
+      const idIn = odIn - 2 * wallIn;
+      if (!(idIn > 0)) {
+        $("pipeIdInOut").textContent = "-";
+        $("pipeVelFtSOut").textContent = "-";
+        $("pipeDpPsiOut").textContent = "-";
+        $("pipeHeadFtOut").textContent = "-";
+        $("pipeDp100PsiOut").textContent = "-";
+        $("pipeHead100FtOut").textContent = "-";
+        $("pipeReOut").textContent = "-";
+        $("pipeFOut").textContent = "-";
+        $("pipeDropNote").textContent = "Invalid geometry: OD must be greater than 2 x wall thickness.";
+        return;
+      }
+
+      const dM = idIn * IN_TO_M;
+      const lM = lengthFt * FT_TO_M;
+      const qM3S = flowGpm * GPM_TO_M3_S;
+      const areaM2 = Math.PI * dM * dM / 4;
+      const velMps = areaM2 > 0 ? (qM3S / areaM2) : 0;
+      const velFps = velMps * M_TO_FT;
+      const re = (velMps > 0 && dM > 0) ? (rho * velMps * dM / MU_WATER) : 0;
+
+      let f = 0;
+      if (re > 0 && re < 2300) {
+        f = 64 / re;
+      } else if (re >= 2300) {
+        const term = (EPS_COPPER / (3.7 * dM)) + (5.74 / Math.pow(re, 0.9));
+        f = 0.25 / Math.pow(Math.log10(term), 2);
+      }
+
+      const dpPa = (lM > 0 && dM > 0) ? (f * (lM / dM) * (rho * velMps * velMps / 2)) : 0;
+      const dpPsi = dpPa / PA_PER_PSI;
+      const headM = dpPa / (rho * G);
+      const headFt = headM * M_TO_FT;
+      const scale100 = lengthFt > 0 ? (100 / lengthFt) : 0;
+      const dp100Psi = dpPsi * scale100;
+      const head100Ft = headFt * scale100;
+
+      $("pipeIdInOut").textContent = idIn.toFixed(3) + " in";
+      $("pipeVelFtSOut").textContent = velFps.toFixed(2) + " ft/s";
+      $("pipeDpPsiOut").textContent = dpPsi.toFixed(3) + " psi";
+      $("pipeHeadFtOut").textContent = headFt.toFixed(2) + " ft head";
+      $("pipeDp100PsiOut").textContent = dp100Psi.toFixed(3) + " psi / 100 ft";
+      $("pipeHead100FtOut").textContent = head100Ft.toFixed(2) + " ft head / 100 ft";
+      $("pipeReOut").textContent = re.toFixed(0);
+      $("pipeFOut").textContent = f.toFixed(4);
+      $("pipeDropNote").textContent = "Assumes water near 60 F and smooth copper roughness.";
+    }
+
 
     $("loadExample").addEventListener("click", loadExample);
     $("tabCalcBtn").addEventListener("click", () => setActiveTab("calc"));
     $("tabToolsBtn").addEventListener("click", () => setActiveTab("tools"));
+    $("tabConstBtn").addEventListener("click", () => setActiveTab("const"));
     $("solveMode").addEventListener("change", () => { toggleSolveInputs(); compute(); });
     ["lengthFt","widthFt","depthFt","rValue","covered","ambientF","startF","targetF","unitMode","maxHours","powerKW","dtMin"]
       .forEach((id) => $(id).addEventListener("input", compute));
-    ["woodLbs", "woodBtuPerLb"]
-      .forEach((id) => $(id).addEventListener("input", computeWoodTool));
+    ["woodLbs", "woodBtuPerLb", "woodLogLb"]
+      .forEach((id) => $(id).addEventListener("input", () => computeWoodTool("")));
+    $("woodBurnLbHr").addEventListener("input", () => computeWoodTool("burn"));
+    $("woodLogsHr").addEventListener("input", () => computeWoodTool("logs"));
     ["part3FeedLbHr", "part3ExBtuPerLb", "part3Eff"]
       .forEach((id) => $(id).addEventListener("input", computePart3Extrapolation));
     $("part3Preset").addEventListener("change", applyPart3PresetToExtrapolation);
@@ -1046,8 +1273,13 @@
     $("fdtDeltaF").addEventListener("input", () => computeFlowDeltaPower("dt"));
     $("fdtPowerKw").addEventListener("input", () => computeFlowDeltaPower("kw"));
     $("fdtPowerBtuHr").addEventListener("input", () => computeFlowDeltaPower("btu"));
+    ["fdtFlowGpm", "fdtDeltaF", "fdtPowerKw", "fdtPowerBtuHr"].forEach((id) => {
+      $(id).addEventListener("blur", () => computeFlowDeltaPower(""));
+    });
     ["scaleBaseKw","scaleBaseFeedLbHr","scaleBtuPerLb","scaleBaseDin","scaleBaseLft","scaleTargetFeedLbHr","scaleTargetDin","scaleTargetLft"]
       .forEach((id) => $(id).addEventListener("input", computeCoilScaleTool));
+    ["pipeOdIn", "pipeWallIn", "pipeFlowGpm", "pipeLengthFt"]
+      .forEach((id) => $(id).addEventListener("input", computePipePressureDrop));
 
     toggleSolveInputs();
     setActiveTab("calc");
@@ -1057,6 +1289,7 @@
     updateFlowSolveUI();
     computeFlowDeltaPower("");
     computeCoilScaleTool();
+    computePipePressureDrop();
   </script>
 </body>
 </html>
